@@ -19,7 +19,7 @@ char keys [rows][columns] = {
 byte rowPins[rows] = {0 , 3 , 2};
 byte columnPins[columns] = {4 , 5 , 6 , 7 , 8 , 9};
 
-Keypad keys = Keypad(makeKeymap(keys ) , rowPins , columnPins , rows , columns);
+Keypad keypad = Keypad(makeKeymap(keys ) , rowPins , columnPins , rows , columns);
 
 void setup() {
   Wire.begin();
@@ -31,7 +31,7 @@ void setup() {
 void loop() {
   
 
-  key = keys.getKey();
+  key = keypad.getKey();
   if(key != 0){
     Wire.beginTransmission(8);
     Wire.write(key);
