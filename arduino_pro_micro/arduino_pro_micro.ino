@@ -22,9 +22,9 @@ Keypad keypad = Keypad(makeKeymap(keys ) , rowPins , columnPins , rows , columns
 */
 
 void setup() {
-  Serial.begin(9600);
+  //Serial.begin(9600);
   Wire.begin(8); 
-  //Keyboard.begin();
+  Keyboard.begin();
 
 
 }
@@ -35,20 +35,20 @@ void loop() {
   while (Wire.available()) { // If received data is detected,
 
     // Keys captured by the keyboard physically connected to the arduino pro mini
-  /*
+  
     key = keypad.getKey();
     if(key != 0){
       //Serial.println(key);
       Keyboard.write(key);
 
     }
-    */
+    
     // Keys captured by the keyboard connected by i2c
 
     key = Wire.read(); 
     if(key != 0){
-      //Keyboard.write(key);
-      Serial.println(key);
+      Keyboard.write(key);
+      //Serial.println(key);
     }
 
     delay(10);
