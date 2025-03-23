@@ -4,68 +4,54 @@
 #include <Mouse.h>
 
 const byte I2C_ADDRESS = 8;
-char receivedKey;
+char caracterBuffer;
+String buffer;
 
 const byte ROWS = 4;
 const byte COLS = 10;
 
-/* TODOs: 
-- agregar funciones de movimiento del mouse (decodificado de los datos del arduino uno)
-- implementar tecla de fn
-- implementar tecla X, N, T
-- implementar combinaciones de teclas
-*/
-
-
-/*
- == TECLAS DE LAS ÚLTIMAS COLUMNAS: ==
-
-- Teclas panel intermedio (salvo las seis del arduino uno)
-S => sin
-O => cos
-T => tan
-P => pi
-x => e^x
-l => ln
-g => log
-i => i
-Y => Shift
-k => alpha
-n => x,n,t
-v => var
-
-
-- Teclas panel superior
-
-c => ctrl 
-h => home (esc)
-A => alt   
-f => fn* SOLO FUNCIONA PARA COMBINACIONES DE TECLADO
-\t => TAB (ya implementado) 
-B => BACK (esc)
-R => right click 
-L=> left click
-*/
-
 char keys[ROWS][COLS] = {
-  {'7' , '8' , '9' , '(' , ')' , 'S'  , 'x' , 'Y' , 'C'  , 'h' },
-  {'4' , '5' , '6' , '*' , '/' , 'O'  , 'l' , 'k' ,'A'   , 'f' },
-  {'1' , '2' , '3' , '+' , '-' , 'T'  , 'g' , 'n' , '\t' , 'B' },
-  {'0' , '.' , 'p' , 'a' , 'e' , 'P'  , 'i' , 'v' , 'R'  , 'L' }
+  {'x' , 'S' , 'Y' , '7' , '8' , '9'  , '(' , ')' ,  'C' , 'h' },
+  {'l' , 'O' , 'k' , '4' , '5' , '6'  , '*' , '/' ,  'A' , 'f' },
+  {'g' , 'T' , 'n' , '1' , '2' , '3'  , '+' , '-' , '\t' , 'B' },
+  {'i' , 'P' , 'v' , '0' , '.' , 'p'  , 'a' , 'e' ,  'R' , 'L' }
 };
 
-byte rowPins[ROWS] = {14 , 15 , 18 , 19};
-byte colPins[COLS] = {1 , 0 , 4 , 5 , 6 , 7 , 8 , 9 , 10 , 16};
-
+byte rowPins[ROWS] = {1 , 0 , 4 , 5};
+byte colPins[COLS] = {7 , 8 , 6 , 9 , 10 , 16 , 14 , 15 , 18 , 19};
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
-void receiveEvent(int howMany) {
-    while (Wire.available()) {
-        receivedKey = Wire.read();
-        Keyboard.press(receivedKey);
-        delay(5); // Pequeña pausa para simular la pulsación
-        Keyboard.release(receivedKey);
+void decodeAndProcessMessage(String message) {
+    message.replace("_", ""); // Eliminar los '_'
+    if (message.length() == 0) return;
+
+    char firstChar = message.charAt(0);
+    if (firstChar != '|') {
+        Keyboard.press(firstChar);
+        delay(5);
+        Keyboard.release(firstChar);
     }
+
+    for (int i = 1; i < message.length(); i++) {
+        if (message.charAt(i) == '1') {
+            switch (i) {
+                case 1: Keyboard.press(KEY_RETURN); delay(5); Keyboard.release(KEY_RETURN); break;
+                case 2: Keyboard.press(KEY_UP_ARROW); delay(5); Keyboard.release(KEY_UP_ARROW); break;
+                case 3: Keyboard.press(KEY_LEFT_ARROW); delay(5); Keyboard.release(KEY_LEFT_ARROW); break;
+                case 4: Keyboard.press(KEY_RIGHT_ARROW); delay(5); Keyboard.release(KEY_RIGHT_ARROW); break;
+                case 5: Keyboard.press(KEY_DOWN_ARROW); delay(5); Keyboard.release(KEY_DOWN_ARROW); break;
+            }
+        }
+    }
+}
+
+void receiveEvent(int howMany) {
+    buffer = "";
+    while (Wire.available()) {
+        caracterBuffer = Wire.read();
+        buffer += caracterBuffer;
+    }
+    decodeAndProcessMessage(buffer);
 }
 
 void setup() {
@@ -76,116 +62,26 @@ void setup() {
 
 void processKey(char key) {
     switch (key) {
-
-        case 'S':
-            Keyboard.write("sin(");
-            delay(5);
-            break;
-        
-        case 'O':
-            Keyboard.write("cos(");
-            delay(5);
-            break;
-
-        case 'T':
-            Keyboard.write("tan(");
-            delay(5);
-            break;
-
-        case 'P':
-            Keyboard.write("π");
-            delay(5);
-            break;
-            
-        case 'x':
-            Keyboard.write("e^x");
-            delay(5);
-            break;
-        
-        case 'l':
-            Keyboard.write("ln(");
-            delay(5);
-            break;
-
-        case 'g':
-            Keyboard.write("log(");
-            delay(5);
-            break;
-
-        case 'i':
-            Keyboard.press('i');
-            delay(5);
-            Keyboard.release('i');
-            break;
-
-        case 'Y':
-            Keyboard.press(KEY_SHIFT);
-            delay(5);
-            Keyboard.release(KEY_SHIFT);
-        
-        case 'k': // Alt     // CUMPLE LA MISMA FUNCIÓN QUE LA TECLA DE ALT, PERO SE MANTIENE POR CUESTIONES DE DISEÑO
-            Keyboard.press(KEY_LEFT_ALT);
-            delay(200);   // ALT TIENE UNA MAYOR DEMORA, DEBIDO A QUE SE USA EN COMBINACIÓN DE TECLAS
-            Keyboard.release(KEY_LEFT_ALT);
-            break;
-
-        case 'n':   // TODO: implementar X, N, T
-            // placeholder
-            break;
-
-        case 'v':
-            Keyboard.press(KEY_LEFT_ALT);
-            Keyboard.press('v');
-            delay(5);
-            Keyboard.press(KEY_LEFT_ALT);
-            Keyboard.release('v');
-        
-        case 'C': // Ctrl
-            Keyboard.press(KEY_LEFT_CTRL);
-            delay(5);
-            Keyboard.release(KEY_LEFT_CTRL);
-            break;
-
-        case 'A': // Alt
-            Keyboard.press(KEY_LEFT_ALT);
-            delay(200);   // ALT TIENE UNA MAYOR DEMORA, DEBIDO A QUE SE USA EN COMBINACIÓN DE TECLAS
-            Keyboard.release(KEY_LEFT_ALT);
-            break;
-
-        case 'B': // Back (Escape)
-            Keyboard.press(KEY_ESC);
-            delay(5);
-            Keyboard.release(KEY_ESC);
-            break;
-
-        case 'h': // Home (Escape)
-            Keyboard.press(KEY_ESC);
-            delay(5);
-            Keyboard.release(KEY_ESC);
-            break;
-
-        case 'L': // Botón izquierdo del mouse
-            Mouse.press(MOUSE_LEFT);
-            delay(5);
-            Mouse.release(MOUSE_LEFT);
-            break;
-
-        case 'R': // Botón derecho del mouse
-            Mouse.press(MOUSE_RIGHT);
-            delay(5);
-            Mouse.release(MOUSE_RIGHT);
-            break;
-
-        case 'f':  // TODO: codificar tecla de [fn]
-            continue;
-            break;
-
-        default: // Teclas normales
-            Keyboard.press(key);
-            delay(5);
-            Keyboard.release(key);
-            break;
+        case 'S': Keyboard.print("sin("); break;
+        case 'O': Keyboard.print("cos("); break;
+        case 'T': Keyboard.print("tan("); break;
+        case 'P': Keyboard.print("\u03C0"); break; // Pi
+        case 'x': Keyboard.print("e^x"); break;
+        case 'l': Keyboard.print("ln("); break;
+        case 'g': Keyboard.print("log("); break;
+        case 'i': Keyboard.press('i'); break;
+        case 'Y': Keyboard.press(KEY_LEFT_SHIFT); break;
+        case 'k': Keyboard.press(KEY_LEFT_ALT); delay(200); Keyboard.release(KEY_LEFT_ALT); break;
+        case 'v': Keyboard.press(KEY_LEFT_ALT); Keyboard.press('v'); delay(5); Keyboard.releaseAll(); break;
+        case 'C': Keyboard.press(KEY_LEFT_CTRL); break;
+        case 'A': Keyboard.press(KEY_LEFT_ALT); delay(200); Keyboard.release(KEY_LEFT_ALT); break;
+        case 'B': case 'h': Keyboard.press(KEY_ESC); break;
+        case 'L': Mouse.press(MOUSE_LEFT); delay(5); Mouse.release(MOUSE_LEFT); break;
+        case 'R': Mouse.press(MOUSE_RIGHT); delay(5); Mouse.release(MOUSE_RIGHT); break;
+        default: Keyboard.press(key); break;
     }
+    delay(5);
+    Keyboard.release(key);
 }
 
 void loop() {
